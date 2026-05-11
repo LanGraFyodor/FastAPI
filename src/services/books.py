@@ -5,6 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.books import Book
+from src.models.sellers import Seller
 from src.schemas.books import IncomingBook, PatchBook, ReturnedBook
 
 
@@ -12,7 +13,11 @@ class BookService:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def add_book(self, book: IncomingBook) -> Book:
+    async def add_book(self, book: IncomingBook) -> Book | None:
+        seller = await self.session.get(Seller, book.seller_id)
+        if seller is None:
+            return None
+
         # это - бизнес логика. Обрабатываем данные, сохраняем, преобразуем и т.д.
         new_book = Book(
             **{
@@ -20,6 +25,7 @@ class BookService:
                 "author": book.author,
                 "year": book.year,
                 "pages": book.pages,
+                "seller_id": book.seller_id,
             }
         )
 
@@ -43,10 +49,15 @@ class BookService:
         # if book:
         # Оператор "морж", позволяющий одновременно и присвоить значение и проверить его. Заменяет то, что закомментировано выше.
         if updated_book := await self.session.get(Book, book_id):
+            seller = await self.session.get(Seller, new_book_data.seller_id)
+            if seller is None:
+                return None
+
             updated_book.title = new_book_data.title
             updated_book.author = new_book_data.author
             updated_book.pages = new_book_data.pages
             updated_book.year = new_book_data.year
+            updated_book.seller_id = new_book_data.seller_id
 
             await self.session.flush()
 
@@ -54,6 +65,12 @@ class BookService:
 
     async def partial_update_book(self, book_id: int, patched_book: PatchBook) -> Book | None:
         if book := await self.session.get(Book, book_id):
+            if patched_book.seller_id is not None:
+                seller = await self.session.get(Seller, patched_book.seller_id)
+                if seller is None:
+                    return None
+
+                book.seller_id = patched_book.seller_id
 
             if patched_book.title is not None and patched_book.title != book.title:
                 book.title = patched_book.title
@@ -74,7 +91,7 @@ class BookService:
         # Хотим видеть формат
         # books: [{"id": 1, "title": "blabla", ...., "year": 2023},{...}]
 
-        query = select(Book)  # SELECT * FROM boocs_table;
+        query = select(Book).order_by(Book.id)  # SELECT * FROM boocs_table;
         result = await self.session.execute(query)  # await session.execute(select(Book))
 
         return result.scalars().all()

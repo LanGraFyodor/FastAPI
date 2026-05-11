@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from pydantic_core import PydanticCustomError
 
 __all__ = [
@@ -22,10 +22,12 @@ class PatchBook(BaseModel):
     author: str | None = None
     year: int | None = None
     pages: int | None = None
+    seller_id: int | None = None
 
 
 # Класс для валидации входящих данных. Не содержит id так как его присваивает БД.
 class IncomingBook(BaseBook):
+    seller_id: int
     pages: int = Field(
         default=100, alias="count_pages"
     )  # Пример использования тонкой настройки полей. Передачи в них метаинформации.
@@ -41,7 +43,10 @@ class IncomingBook(BaseBook):
 
 # Класс, валидирующий исходящие данные. Он уже содержит id
 class ReturnedBook(BaseBook):  # {"id": 1, "title": "Clean Code", ....}
+    model_config = ConfigDict(from_attributes=True)
+
     id: int
+    seller_id: int
     pages: int
 
 

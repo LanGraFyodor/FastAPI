@@ -13,9 +13,10 @@ from icecream import ic
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from src.configurations.settings import settings
-from src.models import books  # noqa
+from src.models import books, sellers  # noqa
 from src.models.base import BaseModel
 from src.models.books import Book  # noqa F401
+from src.models.sellers import Seller  # noqa F401
 
 # Переопределяем движок для запуска тестов и подключаем его к тестовой базе.
 # Это решает проблему с сохранностью данных в основной базе приложения.

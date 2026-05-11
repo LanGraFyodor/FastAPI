@@ -1,50 +1,184 @@
-## Изменения по урокам
+# Book Marketplace FastAPI App
 
-**Урок 1**. Реализовали ручки приложения с фейковой базой и сериализаторами.
-**Урок 2**. Провели рефакторинг. Разложили сериализаторы и ручки по отдельным пакетам.
-Подключили настоящую БД в Докере и создали модели.
-**Урок 3**. Провели рефакторинг.
+Учебное FastAPI-приложение на базе ветки `fourth_lection`.
 
-Написали по одному тесту к ручкам.
+Приложение доработано из простого каталога книг в платформу объявлений о продаже книг: появились продавцы, связь продавцов с книгами и JWT-авторизация для защищенных ручек.
 
-Настроили pytest и фикстуры. Пример почти идеальной настройки фикстур для работы с БД.
+## Что сделано
 
-ОШИБКА C ТЕСТАМИ БЫЛА ВЫЗВАНА ОДНОВЛЕНИЕМ БИБЛИОТЕКИ pytest_asyncio https://pytest-asyncio.readthedocs.io/en/latest/how-to-guides/migrate_from_0_21.html#how-to-guides-migrate-from-0-21
+- Добавлена ORM-модель `Seller`.
+- В модель `Book` добавлено поле `seller_id`.
+- Настроена связь SQLAlchemy `Seller -> Book` один-ко-многим.
+- При удалении продавца удаляются все его книги.
+- Добавлены Pydantic-схемы для продавцов и токена.
+- Добавлены сервисы и роутеры для продавцов и авторизации.
+- Реализован JWT-токен по `e_mail + password`.
+- Закрыты токеном:
+  - `GET /api/v1/seller/{seller_id}`
+  - `POST /api/v1/books/`
+  - `PUT /api/v1/books/{book_id}`
+- Добавлены тесты для книг, продавцов и авторизации.
+- Обновлен `api_tests.http` с примерами запросов.
 
-Добавили .env файл и модуль settings для хранения переменных окружения и их легкого использования.
+## Эндпоинты
 
-**Урок 4**. Провели рефакторинг. Добавили сервисный слой.
+### Продавцы
+
+- `POST /api/v1/seller` — регистрация продавца.
+- `GET /api/v1/seller` — список продавцов без поля `password`.
+- `GET /api/v1/seller/{seller_id}` — продавец и его книги, нужен JWT.
+- `PUT /api/v1/seller/{seller_id}` — обновление данных продавца без пароля и книг.
+- `DELETE /api/v1/seller/{seller_id}` — удаление продавца вместе с его книгами.
+
+### Авторизация
+
+- `POST /api/v1/token` — получение JWT-токена.
+
+Тело запроса:
+
+```json
+{
+  "e_mail": "seller@example.com",
+  "password": "secret"
+}
+```
+
+Ответ:
+
+```json
+{
+  "access_token": "<jwt-token>",
+  "token_type": "bearer"
+}
+```
+
+Защищенные ручки принимают токен стандартно:
+
+```http
+Authorization: Bearer <jwt-token>
+```
+
+### Книги
+
+- `GET /api/v1/books/` — список книг.
+- `POST /api/v1/books/` — создание книги, нужен JWT.
+- `GET /api/v1/books/{book_id}` — получение книги.
+- `PUT /api/v1/books/{book_id}` — обновление книги, нужен JWT.
+- `PATCH /api/v1/books/{book_id}` — частичное обновление книги.
+- `DELETE /api/v1/books/{book_id}` — удаление книги.
+
+При создании и обновлении книги обязательно передается `seller_id`.
+
+Пример создания книги:
+
+```json
+{
+  "title": "Clean Architecture",
+  "author": "Robert Martin",
+  "count_pages": 300,
+  "year": 2025,
+  "seller_id": 1
+}
+```
+
+## Быстрый запуск на Windows
+
+Команды ниже нужно выполнять из корня проекта:
+
+```powershell
+cd C:\Users\fburl\Desktop\Prog\Python\shad_fastapi_project_2026\shad_fastapi_project_2026
+```
+
+### 1. Поднять PostgreSQL
+
+```powershell
+docker compose up -d
+```
+
+Если Docker недоступен, можно использовать локальный PostgreSQL. Тогда нужно поменять параметры подключения в `.env` и заранее создать базы:
+
+- `fastapi_project_db`
+- `fastapi_project_test_db`
+
+### 2. Создать виртуальное окружение
+
+На этой машине команда `python` может вести на заглушку Windows Store, поэтому надежнее использовать `py`:
+
+```powershell
+py -m venv .venv
+```
+
+Если `py` не доступен, используйте полный путь к установленному Python.
+
+### 3. Установить зависимости
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+```
+
+### 4. Создать `.env`
+
+```powershell
+Copy-Item .env_example .env
+```
+
+Пример `.env`:
+
+```env
+DB_USERNAME=postgres_user
+DB_PASSWORD=postgres_pass
+DB_HOST=127.0.0.1
+DB_PORT=5445
+DB_NAME=fastapi_project_db
+JWT_SECRET_KEY=change-me-in-production
+JWT_EXPIRE_SECONDS=3600
+```
+
+### 5. Запустить приложение
+
+```powershell
+.\.venv\Scripts\python.exe -m uvicorn src.main:app --reload
+```
+
+Swagger будет доступен по адресу:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+## Запуск тестов
+
+PostgreSQL должен быть запущен.
+
+Из корня проекта:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest src
+```
+
+Проверенный результат:
+
+```text
+18 passed
+```
+
+## Важное про базу данных
+
+Приложение использует `BaseModel.metadata.create_all`, а не миграции Alembic. Это значит, что если таблицы уже были созданы до добавления `seller_id`, SQLAlchemy сам не изменит старую структуру таблицы.
+
+Если приложение падает из-за старой схемы БД, проще всего пересоздать Docker-том/данные PostgreSQL и поднять базу заново.
 
 ## Структура проекта
 
-Для удобства и соблюдения принципов чистой архитектуры проект разделен на следующие пакеты:
+- `src/configurations` — настройки приложения и подключение к БД.
+- `src/models` — SQLAlchemy ORM-модели.
+- `src/schemas` — Pydantic-схемы запросов и ответов.
+- `src/services` — бизнес-логика и работа с БД.
+- `src/routers` — FastAPI-роутеры.
+- `src/tests` — pytest-тесты.
 
-- `configurations` — слой для хранения конфигураций, констант, параметров и настроек проекта.
+## Полезные ссылки
 
-- `models` — слой для хранения моделей (ORM или Data Classes).
-
-- `routers` — слой для настроек урлов для различных эндпоинтов.
-
-- `schemas` — слой содержащий схемы pydantic, отвечает за сериализацию и валидацию.
-
-- `services` — слой содержащий бизнес-логику и работу с ORM.
-
-## Полезные ссылки (в основном на английском)
-
-#### По Fastapi:
-
-1. [Официальная документация](https://fastapi.tiangolo.com/)
-
-2. [Лучшие практики](https://github.com/zhanymkanov/fastapi-best-practices)
-
-3. [Собрание полезных библиотек и пакетов](https://github.com/mjhea0/awesome-fastapi)
-
-4. [Полезная статья по структуре проекта](https://camillovisini.com/coding/abstracting-fastapi-services)
-
-#### По принципам REST архитектуры:
-
-5. [Полезные рекомендации по правильному написанию REST API](<https://github.com/stickfigure/blog/wiki/How-to-(and-how-not-to)-design-REST-APIs>)
-
-#### По SQLAlchemy:
-
-6. [Хороший бесплатный видеокурс на YouTube. На русском языке](https://youtube.com/playlist?list=PLeLN0qH0-mCXARD_K-USF2wHctxzEVp40&si=V7rZGqu1KVJvidLz)
+- [FastAPI documentation](https://fastapi.tiangolo.com/)
+- [SQLAlchemy ORM relationships](https://docs.sqlalchemy.org/en/20/orm/basic_relationships.html)
+- [FastAPI security tutorial](https://fastapi.tiangolo.com/tutorial/security/)

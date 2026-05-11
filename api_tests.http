@@ -1,59 +1,113 @@
-# Набор тестов для эндпоинтов которые можно запустить
-# в VSCode с помощью плагина  REST Client
-# Найти можно по идентификатору: humao.rest-client
-# Tunder Client не позволяет свободно импортировать-экспортировать записи,
-# поэтому перешел на этот плагин. Он тоже хорош :-)
+# Набор запросов для проверки API через VSCode REST Client.
 
-# Создаем книгу
-POST http://localhost:8000/api/v1/books/ HTTP/1.1
+@host = http://localhost:8000
+@token = paste_token_here
+
+###
+
+# Регистрируем продавца
+POST {{host}}/api/v1/seller HTTP/1.1
 Content-Type: application/json
 
 {
+    "first_name": "Ivan",
+    "last_name": "Petrov",
+    "e_mail": "seller@example.com",
+    "password": "secret"
+}
+
+###
+
+# Получаем JWT токен
+POST {{host}}/api/v1/token HTTP/1.1
+Content-Type: application/json
+
+{
+    "e_mail": "seller@example.com",
+    "password": "secret"
+}
+
+###
+
+# Получаем список продавцов
+GET {{host}}/api/v1/seller HTTP/1.1
+
+###
+
+# Получаем продавца с книгами
+GET {{host}}/api/v1/seller/1 HTTP/1.1
+Authorization: Bearer {{token}}
+
+###
+
+# Обновляем продавца без пароля и книг
+PUT {{host}}/api/v1/seller/1 HTTP/1.1
+Content-Type: application/json
+
+{
+    "first_name": "Petr",
+    "last_name": "Ivanov",
+    "e_mail": "new-seller@example.com"
+}
+
+###
+
+# Создаем книгу
+POST {{host}}/api/v1/books/ HTTP/1.1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
     "title": "Clean Architecture",
-    "author": " Robert Martin",
+    "author": "Robert Martin",
     "count_pages": 300,
-    "year": 2025
+    "year": 2025,
+    "seller_id": 1
 }
 
 ###
 
 # Получаем список книг
-GET http://localhost:8000/api/v1/books/ HTTP/1.1
+GET {{host}}/api/v1/books/ HTTP/1.1
 
 ###
 
 # Получаем одну книгу по ее ИД
-GET http://localhost:8000/api/v1/books/1 HTTP/1.1
+GET {{host}}/api/v1/books/1 HTTP/1.1
 
 ###
 
-# Удаляем книгу
-DELETE http://localhost:8000/api/v1/books/1 HTTP/1.1
-
-###
-
-# Обновляем поля в данных о книге
-PUT http://localhost:8000/api/v1/books/1 HTTP/1.1
+# Обновляем книгу
+PUT {{host}}/api/v1/books/1 HTTP/1.1
 Content-Type: application/json
+Authorization: Bearer {{token}}
 
 {
     "id": 1,
     "title": "Clean Code",
     "author": "Robert Martin",
-    "year": 2022,
-    "pages": 310
+    "year": 2024,
+    "pages": 310,
+    "seller_id": 1
 }
 
 ###
 
-
-# Обновляем поля в данных о книге
-PATCH http://localhost:8000/api/v1/books/1 HTTP/1.1
+# Частично обновляем книгу
+PATCH {{host}}/api/v1/books/1 HTTP/1.1
 Content-Type: application/json
 
 {
     "title": "Mziri",
-    "pages": 310
+    "pages": 320
 }
 
 ###
+
+# Удаляем книгу
+DELETE {{host}}/api/v1/books/1 HTTP/1.1
+
+###
+
+# Удаляем продавца вместе с его книгами
+DELETE {{host}}/api/v1/seller/1 HTTP/1.1
