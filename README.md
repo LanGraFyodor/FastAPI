@@ -83,11 +83,6 @@ Authorization: Bearer <jwt-token>
 
 ## Быстрый запуск на Windows
 
-Команды ниже нужно выполнять из корня проекта:
-
-```powershell
-cd path\to\shad_fastapi_project_2026
-```
 
 ### 1. Поднять PostgreSQL
 
