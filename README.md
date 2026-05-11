@@ -86,7 +86,7 @@ Authorization: Bearer <jwt-token>
 Команды ниже нужно выполнять из корня проекта:
 
 ```powershell
-cd C:\Users\fburl\Desktop\Prog\Python\shad_fastapi_project_2026\shad_fastapi_project_2026
+cd path\to\shad_fastapi_project_2026
 ```
 
 ### 1. Поднять PostgreSQL
@@ -102,13 +102,15 @@ docker compose up -d
 
 ### 2. Создать виртуальное окружение
 
-На этой машине команда `python` может вести на заглушку Windows Store, поэтому надежнее использовать `py`:
+```powershell
+python -m venv .venv
+```
+
+Если команда `python` недоступна, используйте Python Launcher:
 
 ```powershell
 py -m venv .venv
 ```
-
-Если `py` не доступен, используйте полный путь к установленному Python.
 
 ### 3. Установить зависимости
 
